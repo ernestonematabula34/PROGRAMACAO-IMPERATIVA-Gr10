@@ -1,0 +1,75 @@
+26/06/25   12:00
+
+Main.c
+
+#include "main.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+int main() {
+    char expressao[MAX];
+    Token lista[MAX];
+    TipoErro erro;
+
+    FILE *entrada = fopen("in.txt", "r");
+    FILE *saida = fopen("out.txt", "w");
+
+    if (!entrada) {
+        fprintf(stderr, "Erro: não foi possível abrir in.txt\n");
+        return 1;
+    }
+    if (!saida) {
+        fprintf(stderr, "Erro: não foi possível criar out.txt\n");
+        fclose(entrada);
+        return 1;
+    }
+
+    while (fgets(expressao, sizeof(expressao), entrada)) {
+        expressao[strcspn(expressao, "\n")] = '\0';
+
+        if (strlen(expressao) == 0) continue;
+
+        fprintf(saida, "Expressao: %s\n", expressao);
+
+        if (validar_expressao(expressao, &erro)) {
+            int total = tokenize(expressao, lista);
+
+            if (contem_divisao_por_zero(lista, total)) {
+                erro = ERRO_DIVISAO_POR_ZERO;
+                fprintf(saida, "Erro: Divisao por zero detectada na expressao.\n\n");
+                continue;
+            }
+
+            Token fila_saida[MAX];
+            int tamanho_saida;
+            converter_para_RPN(lista, fila_saida, total, &tamanho_saida);
+
+            int resultado = avaliar_RPN(fila_saida, tamanho_saida);
+            fprintf(saida, "Resultado: %d\n\n", resultado);
+        } else {
+            switch (erro) {
+                case ERRO_CARACTERE_INVALIDO:
+                    fprintf(saida, "Erro: Caractere invalido.\n\n"); break;
+                case ERRO_PARENTESES_DESBALANCEADOS:
+                    fprintf(saida, "Erro: Parenteses desbalanceados.\n\n"); break;
+                case ERRO_OPERADOR_FALTANDO:
+                    fprintf(saida, "Erro: Operador faltando.\n\n"); break;
+                case ERRO_OPERADOR_INVALIDO:
+                    fprintf(saida, "Erro: Operador invalido.\n\n"); break;
+                case ERRO_NUMERO_APOS_NUMERO:
+                    fprintf(saida, "Erro: Numero apos numero.\n\n"); break;
+                case ERRO_FINAL_INVALIDO:
+                    fprintf(saida, "Erro: Expressao termina com operador.\n\n"); break;
+                case ERRO_DIVISAO_POR_ZERO:
+                    fprintf(saida, "Erro: Divisao por zero.\n\n"); break;
+                default:
+                    fprintf(saida, "Erro desconhecido.\n\n"); break;
+            }
+        }
+    }
+
+    fclose(entrada);
+    fclose(saida);
+    return 0;
+}
